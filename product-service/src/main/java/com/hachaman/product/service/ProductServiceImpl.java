@@ -2,13 +2,21 @@ package com.hachaman.product.service;
 
 import com.hachaman.product.entity.Category;
 import com.hachaman.product.entity.Product;
+import com.hachaman.product.entity.ProductStatus;
+import com.hachaman.product.repository.CategoryRepository;
 import com.hachaman.product.repository.ProductRepository;
+import com.hachaman.product.service.request.ProductRequest;
+import com.hachaman.product.service.request.UpdateProductRequest;
+import com.hachaman.product.service.request.UpdateStockRequest;
+import com.hachaman.product.service.response.ProductResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -16,76 +24,122 @@ public class ProductServiceImpl implements ProductService{
 
     private final ProductRepository productRepository;
 
-    @Override
-    public List<Product> listAllProducts() {
-        return productRepository.findAll();
-    }
+    private final CategoryRepository categoryRepository;
 
     @Override
-    public Product getProduct(Long id) {
-        return productRepository.findById(id).orElse(null);
-    }
+    @Transactional(readOnly = true)
+    public List<ProductResponse> listAllProducts() {
 
-    @Override
-    public Product createProduct(Product product) {
-
-        product.setStatus("CREATED");
-        product.setCreatedAt(new Date());
-        return productRepository.save(product);
+        return productRepository.findAll()
+                .stream()
+                .map(ProductResponse::new)
+                .toList();
 
     }
 
     @Override
-    public Product updateProduct(Product product) {
-
-        Product productDB = getProduct(product.getId());
-
-        if (Objects.nonNull(productDB)) {
-
-            productDB.setName(product.getName());
-            productDB.setDescription(product.getDescription());
-            productDB.setCategory(product.getCategory());
-            productDB.setPrice(product.getPrice());
-
-            return productRepository.save(productDB);
-
-        } else
-            return null;
+    @Transactional(readOnly = true)
+    public ProductResponse getProduct(Long id) {
+        return productRepository.findById(id)
+                .map(ProductResponse::new)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
     }
 
     @Override
-    public Product deleteProduct(Long id) {
+    @Transactional
+    public ProductResponse createProduct(ProductRequest productRequest) {
 
-        Product productDB = getProduct(id);
+        Category category = categoryRepository.findById(productRequest.categoryId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category not found"));
 
-        if (Objects.nonNull(productDB)) {
+        Product product = new Product();
 
-            productDB.setStatus("DELETED");
-            return productRepository.save(productDB);
+        product.setName(productRequest.name());
+        product.setDescription(productRequest.description());
+        product.setStock(productRequest.stock());
+        product.setPrice(productRequest.price());
+        product.setCategory(category);
+        product.setStatus(ProductStatus.CREATED);
+        product.setCreatedAt(Instant.now());
 
-        } else
-            return null;
+        Product saved = productRepository.save(product);
+
+        return new ProductResponse(saved);
+
     }
 
     @Override
-    public List<Product> findByCategory(Category category) {
-        return productRepository.findByCategory(category);
+    @Transactional
+    public ProductResponse updateProduct(Long id, UpdateProductRequest updateProductRequest) {
+
+        Category category = categoryRepository.findById(updateProductRequest.categoryId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category not found"));
+
+        Product updateProduct = productRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product not found"));
+
+        updateProduct.setName(updateProductRequest.name());
+        updateProduct.setDescription(updateProductRequest.description());
+        updateProduct.setPrice(updateProductRequest.price());
+        updateProduct.setCategory(category);
+
+        return new ProductResponse(updateProduct);
+
     }
 
     @Override
-    public Product updateStock(Long id, Double quantity) {
+    @Transactional
+    public void deleteProduct(Long id) {
 
-        Product productDB = getProduct(id);
+        Product deleteProduct = productRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
 
-        if (Objects.nonNull(productDB)) {
+        deleteProduct.setStatus(ProductStatus.DELETED);
 
-            Double stock = productDB.getStock() + quantity;
-            productDB.setStock(stock);
+    }
 
-            return productRepository.save(productDB);
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductResponse> findByCategoryId(Long categoryId) {
 
-        } else
-            return null;
+        if (!categoryRepository.existsById(categoryId))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found");
 
+        return productRepository.findByCategoryId(categoryId)
+                .stream()
+                .map(ProductResponse::new)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public ProductResponse updateStock(Long id, UpdateStockRequest updateStock) {
+
+        Product updateProduct = productRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
+
+        long newStock = updateProduct.getStock() + updateStock.quantity();
+
+        if (newStock < 0)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Insufficient stock: available " + updateProduct.getStock());
+
+        updateProduct.setStock(newStock);
+
+        return new ProductResponse(updateProduct);
+
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductResponse> findByCategoryName(String categoryName) {
+
+        if (!categoryRepository.existsByName(categoryName))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found");
+
+        return productRepository.findByCategoryName(categoryName)
+                .stream()
+                .map(ProductResponse::new)
+                .toList();
     }
 }

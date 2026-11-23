@@ -2,9 +2,12 @@ package com.hachaman.product;
 
 import com.hachaman.product.entity.Category;
 import com.hachaman.product.entity.Product;
+import com.hachaman.product.repository.CategoryRepository;
 import com.hachaman.product.repository.ProductRepository;
 import com.hachaman.product.service.ProductService;
 import com.hachaman.product.service.ProductServiceImpl;
+import com.hachaman.product.service.request.UpdateStockRequest;
+import com.hachaman.product.service.response.ProductResponse;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,12 +15,16 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 public class ProductServiceMockTest {
 
     @Mock
     private ProductRepository productRepository;
+
+    @Mock
+    private CategoryRepository categoryRepository;
 
     private ProductService productService;
 
@@ -26,14 +33,19 @@ public class ProductServiceMockTest {
 
         MockitoAnnotations.openMocks(this);
 
-        productService = new ProductServiceImpl(productRepository);
+        productService = new ProductServiceImpl(productRepository, categoryRepository);
+
+        Category category = Category.builder().id(1L).build();
+        String productName = "computer";
+        BigDecimal price = BigDecimal.valueOf(12.5);
+        Long quantity = 5L;
 
         Product computer = Product.builder()
                 .id(1L)
-                .name("computer")
-                .category(Category.builder().id(1L).build())
-                .price(Double.parseDouble("12.5"))
-                .stock(Double.parseDouble("5"))
+                .name(productName)
+                .category(category)
+                .price(price)
+                .stock(quantity)
                 .build();
 
         Mockito.when(productRepository.findById(1L))
@@ -47,18 +59,26 @@ public class ProductServiceMockTest {
     @Test
     public void whenValidGetId_ThenReturnProduct() {
 
-        Product found = productService.getProduct(1L);
+        Long id = 1L;
 
-        Assertions.assertThat(found.getName()).isEqualTo("computer");
+        ProductResponse found = productService.getProduct(id);
+
+        Assertions.assertThat(found.name()).isEqualTo("computer");
 
     }
 
     @Test
     public void whenValidUpdateStock_ThenReturnNewStock() {
 
-        Product newStock = productService.updateStock(1L, Double.parseDouble("8"));
+        Long id = 1L;
+        Long quantity = 8L;
+        Long expectedQuantity = 13L;
 
-        Assertions.assertThat(newStock.getStock()).isEqualTo(13);
+        UpdateStockRequest updateStock = new UpdateStockRequest(quantity);
+
+        ProductResponse newStock = productService.updateStock(id, updateStock);
+
+        Assertions.assertThat(newStock.stock()).isEqualTo(expectedQuantity);
 
     }
 

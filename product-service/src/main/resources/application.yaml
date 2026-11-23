@@ -1,3 +1,45 @@
+# Application Configuration
+server:
+  port: 8091
+
+# To See H2 Console in Browser
+# http://localhost:8091/h2-console
+# Enabling H2 Console
 spring:
   application:
     name: product-service
+
+  h2:
+    console:
+      enabled: true
+    # ===============================
+    # DB
+    # ===============================
+
+  datasource:
+    url: jdbc:h2:mem:productDB;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    # platform: h2
+    username: sa
+    password:
+    # Optional in modern Spring Boot
+    driverClassName: org.h2.Driver
+    # ===============================
+    # JPA / HIBERNATE
+    # ===============================
+
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        show_sql: true
+        use_sql_comments: true
+        format_sql: false
+      # Optional: Modern Spring Boot/Hibernate auto-detects the H2 platform
+    database-platform: org.hibernate.dialect.H2Dialect
+    defer-datasource-initialization: true
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} ${LOG_LEVEL_PATTERN:-%5p} %m%n"

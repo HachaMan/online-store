@@ -2,6 +2,7 @@ package com.hachaman.product;
 
 import com.hachaman.product.entity.Category;
 import com.hachaman.product.entity.Product;
+import com.hachaman.product.entity.ProductStatus;
 import com.hachaman.product.repository.ProductRepository;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -9,7 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 
-import java.util.Date;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 @DataJpaTest(properties = {
@@ -33,14 +35,14 @@ public class ProductRepositoryMockTest {
                 .name("Computer")
                 .category(shoesCategory)
                 .description("")
-                .stock(Double.parseDouble("10"))
-                .price(Double.parseDouble("1240.99"))
-                .status("Created")
-                .createdAt(new Date()).build();
+                .stock(10L)
+                .price(BigDecimal.valueOf(1240.99))
+                .status(ProductStatus.CREATED)
+                .createdAt(Instant.now()).build();
 
         productRepository.save(product01);
 
-        List<Product> found = productRepository.findByCategory(product01.getCategory());
+        List<Product> found = productRepository.findByCategoryId(product01.getCategory().getId());
 
         Assertions.assertThat(found.size()).isEqualTo(3);
 

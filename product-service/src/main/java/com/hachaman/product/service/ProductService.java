@@ -1,24 +1,28 @@
 package com.hachaman.product.service;
 
-import com.hachaman.product.entity.Category;
-import com.hachaman.product.entity.Product;
+import com.hachaman.product.service.request.ProductRequest;
+import com.hachaman.product.service.request.UpdateProductRequest;
+import com.hachaman.product.service.request.UpdateStockRequest;
+import com.hachaman.product.service.response.ProductResponse;
 
 import java.util.List;
 
 public interface ProductService {
 
-    List<Product> listAllProducts();
+    List<ProductResponse> listAllProducts();
 
-    Product getProduct(Long id);
+    ProductResponse getProduct(Long id);
 
-    Product createProduct(Product product);
+    ProductResponse createProduct(ProductRequest productRequest);
 
-    Product updateProduct(Product product);
+    ProductResponse updateProduct(Long id, UpdateProductRequest updateProductRequest);
 
-    Product deleteProduct(Long id);
+    void deleteProduct(Long id);
 
-    List<Product> findByCategory(Category category);
+    List<ProductResponse> findByCategoryId(Long categoryId);
 
-    Product updateStock(Long id, Double quantity);
+    ProductResponse updateStock(Long id, UpdateStockRequest updateStock);
+
+    List<ProductResponse> findByCategoryName(String categoryName);
 
 }
